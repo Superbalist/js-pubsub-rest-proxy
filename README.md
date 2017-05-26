@@ -38,11 +38,15 @@ messages via this service.
 
 ## Installation
 
+The service is available as a docker image OR an npm package.
+
 ```bash
 npm install @superbalist/js-pubsub-rest-proxy
 ```
 
 ## Environment Variables
+
+When you start the `js-pubsub-rest-proxy` image, you can adjust the configuration of the instance by passing one or more environment variables on the docker run command line.
 
 | Env Var                        | Default   | Description                                                        |
 |--------------------------------|-----------|--------------------------------------------------------------------|
@@ -54,3 +58,29 @@ npm install @superbalist/js-pubsub-rest-proxy
 | REDIS_PORT                     | 6379      |                                                                    |
 | GOOGLE_CLOUD_PROJECT_ID        | null      |                                                                    |
 | GOOGLE_APPLICATION_CREDENTIALS | null      | The full path to the file containing the Google Cloud credentials  |
+
+## Running
+
+1. Start a container using the Redis Pub/Sub adapter
+```bash
+$ docker run \
+  -d \
+  --rm \
+  --name js-pubsub-rest-proxy \
+  -e PUBSUB_CONNECTION='redis' \
+  -e REDIS_HOST='127.0.0.1' \
+  -e REDIS_PORT='6379' \
+  superbalist/js-pubsub-rest-proxy
+```
+
+2. Start a container using the Google Cloud Pub/Sub adapter
+```bash
+$ docker run \
+  -d \
+  --rm \
+  --name js-pubsub-rest-proxy \
+  -e PUBSUB_CONNECTION='gcloud' \
+  -e GOOGLE_CLOUD_PROJECT_ID='your-project-id-here' \
+  -e GOOGLE_APPLICATION_CREDENTIALS='/etc/gcloud_credentials.json' \
+  superbalist/js-pubsub-rest-proxy
+```
