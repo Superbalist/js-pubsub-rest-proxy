@@ -51,9 +51,9 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | Env Var                        | Default   | Description                                                        |
 |--------------------------------|-----------|--------------------------------------------------------------------|
 | PORT                           | 3000      | The port the web server will listen on                             |
-| LOG_LEVEL                      | info      | The log level (silly | debug | verbose | info | warn | error)      |
+| LOG_LEVEL                      | info      | The log level (silly, debug, verbose, info, warn, error)           |
 | SENTRY_DSN                     | null      |                                                                    |
-| PUBSUB_CONNECTION              | redis     | The pub/sub connection to use (/dev/null | local | redis | gcloud) |
+| PUBSUB_CONNECTION              | redis     | The pub/sub connection to use (/dev/null, local, redis, gcloud)    |
 | REDIS_HOST                     | localhost |                                                                    |
 | REDIS_PORT                     | 6379      |                                                                    |
 | GOOGLE_CLOUD_PROJECT_ID        | null      |                                                                    |
