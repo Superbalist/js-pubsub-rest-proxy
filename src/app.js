@@ -23,7 +23,7 @@ let isRunning = true;
 // bootstrap app
 let app = express();
 app.use(morgan('dev'));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: config.MAX_POST_SIZE }));
 app.use(bodyParser.urlencoded({extended: false}));
 
 // register routes
