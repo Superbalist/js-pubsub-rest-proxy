@@ -11,6 +11,11 @@ if (config.SENTRY_DSN) {
     .install();
 }
 
+if( config.PROMETHEUS_EXPORTER ) {
+  console.log('Prometheus enabled on port: ' + config.PROMETHEUS_PORT);
+  require('./prometheus').listen(config.PROMETHEUS_PORT);
+}
+
 let logger = require('./logger');
 let pubsub = require('./pubsub');
 let connection = pubsub.connection();
