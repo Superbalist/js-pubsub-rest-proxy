@@ -59,6 +59,7 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | REDIS_PORT                     | 6379      |                                                                    |
 | GOOGLE_CLOUD_PROJECT_ID        | null      |                                                                    |
 | GOOGLE_APPLICATION_CREDENTIALS | null      | The full path to the file containing the Google Cloud credentials  |
+| GOOGLE_CLOUD_CLIENT_IDENTIFIER | null      | The client identifier used when talking to Google Cloud            |
 
 ## Running
 
