@@ -50,13 +50,11 @@ app.post('/messages/:channel', (req, res, next) => {
     let messages = req.body.messages || [];
 
     queue.push((cb) => {
-      try {
-        connection.publishBatch(channel, messages);
-        cb();
-      } catch (e) {
-        // this will trigger the error event on the job
-        cb(e);
-      }
+      connection.publishBatch(channel, messages).then(()=>{
+        cb()
+      }).catch((err) => {
+        cb(err)
+      });
     });
 
     res.json({success: true});

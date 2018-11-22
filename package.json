@@ -1,6 +1,6 @@
 {
   "name": "@superbalist/js-pubsub-rest-proxy",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An HTTP server which acts as a gateway for publishing messages via a js-pubsub adapter",
   "private": true,
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/Superbalist/js-pubsub-rest-proxy#readme",
   "dependencies": {
-    "@superbalist/js-pubsub-manager": "^2.0.0",
+    "@superbalist/js-pubsub-manager": "^3.0.1",
     "body-parser": "^1.17.2",
     "debug": "~2.6.3",
     "express": "^4.15.3",
