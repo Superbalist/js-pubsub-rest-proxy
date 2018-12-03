@@ -26,10 +26,10 @@ app.get('/metrics', (req, res) => {
     res.end(client.register.metrics());
 });
 
-// if( config.PROMETHEUS_EXPORTER ) {
+if( config.PROMETHEUS_EXPORTER ) {
   console.log('Prometheus enabled on port: ' + config.PROMETHEUS_PORT);
   app.listen(config.PROMETHEUS_PORT || 5000);
-// }
+}
 
 module.exports = {
   recieveCount,
