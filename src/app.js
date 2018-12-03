@@ -46,21 +46,20 @@ app.post('/messages/:channel', (req, res, next) => {
   } else {
     let channel = req.params.channel;
     let messages = req.body.messages || [];
-    console.log(messages)
     if(messages.length > 0) {
       queue.push((cb) => {
         connection.publishBatch(channel, messages).then(()=>{
-          prom.publishCount.inc({ state: 'success'});
+          prom.publishCount.inc({state: 'success'});
           cb();
           end();
         }).catch((err) => {
-          prom.publishCount.inc({ state: 'failed'});
+          prom.publishCount.inc({state: 'failed'});
           cb(err);
           end();
         });
       });
     } else {
-      prom.publishCount.inc({ state: 'empty'});
+      prom.publishCount.inc({state: 'empty'});
       end();
     }
 
