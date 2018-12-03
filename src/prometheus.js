@@ -4,7 +4,7 @@ let client = require('prom-client');
 let config = require('./config')
 client.collectDefaultMetrics({timeout: 30000});
 
-const recieveCount = new client.Counter({
+const receiveCount = new client.Counter({
   name: 'pubsub_rest_proxy_message_total',
   help: 'Count of all messages recieved by pubsub-rest-proxy',
 });
@@ -34,7 +34,7 @@ if( config.PROMETHEUS_EXPORTER ) {
 }
 
 module.exports = {
-  recieveCount,
+  receiveCount,
   publishCount,
   requestSummary,
 };
