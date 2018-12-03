@@ -18,6 +18,8 @@ const publishCount = new client.Counter({
 const requestSummary = new client.Summary({
   name: 'pubsub_rest_proxy_receive_to_publish_percentile',
   help: 'Percentiles of time between receive and publish',
+  maxAgeSeconds: 600,
+  ageBuckets: 5,
 });
 
 let app = express();
