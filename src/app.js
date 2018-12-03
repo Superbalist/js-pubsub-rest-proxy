@@ -37,7 +37,7 @@ app.get('/healthz', (req, res, next) => {
 });
 
 app.post('/messages/:channel', (req, res, next) => {
-  prom.recieveCount.inc();
+  prom.receiveCount.inc();
   let end = prom.requestSummary.startTimer();
   if (!isRunning) {
     let error = new Error('Service Unavailable');
