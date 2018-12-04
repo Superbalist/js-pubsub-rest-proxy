@@ -11,7 +11,7 @@ const receiveCount = new client.Counter({
 
 const publishCount = new client.Counter({
   name: 'pubsub_rest_proxy_publish_total',
-  help: 'Count of all messages recieved by pubsub-rest-proxy',
+  help: 'Count of all messages published by pubsub-rest-proxy',
   labelNames: ['success'],
 });
 
