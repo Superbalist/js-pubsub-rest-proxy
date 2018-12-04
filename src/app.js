@@ -58,12 +58,12 @@ app.post('/messages/:channel', (req, res, next) => {
           end();
         });
       });
+      res.json({success: true});
     } else {
       prom.publishCount.inc({state: 'empty'});
       end();
+      res.status(400).json({success: false});
     }
-
-    res.json({success: true});
   }
 });
 
