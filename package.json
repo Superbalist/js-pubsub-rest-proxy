@@ -1,6 +1,6 @@
 {
   "name": "@superbalist/js-pubsub-rest-proxy",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "An HTTP server which acts as a gateway for publishing messages via a js-pubsub adapter",
   "private": true,
   "scripts": {
@@ -35,6 +35,6 @@
   "devDependencies": {
     "eslint": "^3.19.0",
     "eslint-config-google": "^0.7.1",
-    "nodemon": "^1.11.0"
+    "nodemon": "^1.18.7"
   }
 }

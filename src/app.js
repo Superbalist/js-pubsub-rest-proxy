@@ -5,16 +5,12 @@ let express = require('express');
 let morgan = require('morgan');
 let bodyParser = require('body-parser');
 let Raven = require('raven');
-
 if (config.SENTRY_DSN) {
   Raven.config(config.SENTRY_DSN)
     .install();
 }
 
-if( config.PROMETHEUS_EXPORTER ) {
-  console.log('Prometheus enabled on port: ' + config.PROMETHEUS_PORT);
-  require('./prometheus').listen(config.PROMETHEUS_PORT);
-}
+let prom = require('./prometheus');
 
 let logger = require('./logger');
 let pubsub = require('./pubsub');
@@ -41,6 +37,8 @@ app.get('/healthz', (req, res, next) => {
 });
 
 app.post('/messages/:channel', (req, res, next) => {
+  prom.receiveCount.inc();
+  let end = prom.requestSummary.startTimer();
   if (!isRunning) {
     let error = new Error('Service Unavailable');
     error.status = 503;
@@ -48,16 +46,24 @@ app.post('/messages/:channel', (req, res, next) => {
   } else {
     let channel = req.params.channel;
     let messages = req.body.messages || [];
-
-    queue.push((cb) => {
-      connection.publishBatch(channel, messages).then(()=>{
-        cb()
-      }).catch((err) => {
-        cb(err)
+    if(messages.length > 0) {
+      queue.push((cb) => {
+        connection.publishBatch(channel, messages).then(()=>{
+          prom.publishCount.inc({state: 'success'});
+          cb();
+          end();
+        }).catch((err) => {
+          prom.publishCount.inc({state: 'failed'});
+          cb(err);
+          end();
+        });
       });
-    });
-
-    res.json({success: true});
+      res.json({success: true});
+    } else {
+      prom.publishCount.inc({state: 'empty'});
+      end();
+      res.status(400).json({success: false});
+    }
   }
 });
 
