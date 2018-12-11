@@ -6,6 +6,7 @@ const config = {
   MAX_POST_SIZE: process.env.MAX_POST_SIZE || '10mb',
   PROMETHEUS_EXPORTER: process.env.PROMETHEUS_EXPORTER_ENABLED || false,
   PROMETHEUS_PORT: process.env.PROMETHEUS_EXPORTER_PORT || 5000,
+  VALIDATION_ERROR_CHANNEL: process.env.VALIDATION_ERROR_CHANNEL || 'validation_error',
 };
 
 module.exports = config;

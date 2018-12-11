@@ -14,7 +14,6 @@ let prom = require('./prometheus');
 
 let logger = require('./logger');
 let pubsub = require('./pubsub');
-let connection = pubsub.connection();
 let queue = require('./queue');
 
 // this flag indicates whether or not we'll accept messages on the POST end-point
@@ -46,26 +45,38 @@ app.post('/messages/:channel', (req, res, next) => {
   } else {
     let channel = req.params.channel;
     let messages = req.body.messages || [];
-    if(messages.length > 0) {
-      queue.push((cb) => {
-        connection.publishBatch(channel, messages).then(()=>{
-          prom.publishCount.inc({state: 'success'});
-          cb();
-          end();
-        }).catch((err) => {
-          prom.publishCount.inc({state: 'failed'});
-          cb(err);
-          end();
-        });
-      });
-      res.json({success: true});
-    } else {
-      prom.publishCount.inc({state: 'empty'});
-      end();
-      res.status(400).json({success: false});
-    }
+    queue.push(publishJob(channel, messages, end));
+    res.json({success: true});
   }
 });
+
+
+  /**
+   * Return a job
+   *
+   * @param {String} channel
+   * @param {[Object]} messages
+   * @param {Function} end
+   *
+   * @return {Function}
+   */
+function publishJob(channel, messages, end) {
+  return function(cb) {
+    pubsub.publish(channel, messages).then((result)=>{
+      let errors = result.errors;
+      if(errors.length > 0) {
+        prom.publishCount.inc({state: 'failed'});
+        queue.push(publishJob(channel, errors, end));
+      } else {
+        prom.publishCount.inc({state: 'success'});
+        end();
+      }
+      cb();
+    }).catch((error) => {
+      cb(error);
+    });
+  };
+}
 
 // bind middleware
 app.use((req, res, next) => {

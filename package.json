@@ -22,7 +22,9 @@
   },
   "homepage": "https://github.com/Superbalist/js-pubsub-rest-proxy#readme",
   "dependencies": {
+    "@superbalist/js-event-pubsub": "^3.0.2",
     "@superbalist/js-pubsub-manager": "^3.0.1",
+    "ajv": "^5.0.1",
     "body-parser": "^1.17.2",
     "debug": "~2.6.3",
     "express": "^4.15.3",
