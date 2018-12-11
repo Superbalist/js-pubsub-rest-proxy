@@ -2,7 +2,7 @@ let eventPubSub = require('@superbalist/js-event-pubsub');
 let Ajv = require('ajv');
 let request = require('request-promise-native');
 let JSONSchemaEventValidator = eventPubSub.validators.JSONSchemaEventValidator;
-
+const config = require('./config');
 let ajv = new Ajv({
   extendRefs: true,
   loadSchema: (uri) => {
@@ -30,7 +30,7 @@ class ValidationError extends Error {
     this.name = 'ValidationError';
     // Custom debugging information
     this.event = {
-      'schema': 'http://schema.superbalist.com/events/validation_error/validation_error/1.0.json',
+      'schema': config.VALIDATION_SCHEMA_URL,
       'meta': validationResult.event.attributes.meta,
       'event': validationResult.event.schema,
       'errors': validationResult.errors,
