@@ -13,7 +13,8 @@
       "ignoreComments": true,
       "ignoreUrls": true,
       "ignoreStrings": true,
-      "ignoreRegExpLiterals": true
+      "ignoreRegExpLiterals": true,
+      "code": 120
     }]
   }
 }
