@@ -30,7 +30,7 @@ class ValidationError extends Error {
     this.name = 'ValidationError';
     // Custom debugging information
     this.event = {
-      'schema': config.VALIDATION_SCHEMA_URL,
+      'schema': config.VALIDATION_ERROR_SCHEMA_URL,
       'meta': validationResult.event.attributes.meta,
       'event': validationResult.event.schema,
       'errors': validationResult.errors,
