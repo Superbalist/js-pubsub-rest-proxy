@@ -1,5 +1,5 @@
 const config = require('./config');
-
+const logger = require('./logger');
 //  By default validation is always happy
 let validate = () => {
   return Promise.resolve();
@@ -47,6 +47,15 @@ if(config.VALIDATION_ERROR_SCHEMA_URL) {
 
   //  Override validation with ajv validation.
   validate = (message) => {
+    if(!message.schema) {
+      logger.error('No schema: ' + JSON.stringify(message));
+      return Promise.reject(new ValidationError({
+        event: {
+          attributes: {meta: message.meta},
+        },
+        errors: ['No schema Provided'],
+      }));
+    }
     return validator.validate(new SchemaEvent(message.schema, message))
     .then((validationResult)=>{
       if(validationResult.passes) {
