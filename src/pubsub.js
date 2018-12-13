@@ -32,7 +32,7 @@ let publish = async (channel, messages) => {
         connection.publish(config.VALIDATION_ERROR_CHANNEL, error.event);
         // For now we're going to dual publish the invalid messages.
         // Wrap it in a try catch so that if it fails but publish succeeds it doesn't
-        // dual publish.
+        // publish the same event twice.
         try{
           prom.messageCount.inc({state: 'invalid'});
         } catch(error) {

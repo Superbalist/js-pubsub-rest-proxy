@@ -105,6 +105,10 @@ let onExitHandler = () => {
   app.server.close(emptyQueue);
 };
 
+
+/**
+ * Run the queue and exit if it is empty
+ */
 function emptyQueue() {
   if(queue.length == 0) {
     process.exit(0);
