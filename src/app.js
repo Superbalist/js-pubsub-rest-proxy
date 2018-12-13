@@ -54,16 +54,13 @@ app.post('/messages/:channel', (req, res, next) => {
    *
    * @return {Function}
    */
-function publishJob(channel, messages, end, retries=0) {
+function publishJob(channel, messages, end) {
   return function(cb) {
     pubsub.publish(channel, messages).then((result)=>{
       let errors = result.errors;
       if(errors.length > 0) {
         prom.publishCount.inc({state: 'failed'});
-        if(retries > -2 /* This is infinite for now */) {
-          retries++;
-          queue.push(publishJob(channel, errors, end, retries));
-        }
+        queue.push(publishJob(channel, errors, end));
       } else {
         prom.publishCount.inc({state: 'success'});
         end();
@@ -98,13 +95,13 @@ app.use((err, req, res, next) => {
 
 let onExitHandler = () => {
   logger.info('Preparing to shutdown application');
-  isRunning = false;
 
   logger.info('Stopping queue timer');
   clearInterval(queue.timer);
 
   logger.info('Processing remaining jobs on queue');
   logger.info('Closing express server socket');
+  // When the HTTP server closes we want to empty the job queue.
   app.server.close(emptyQueue);
 };
 
