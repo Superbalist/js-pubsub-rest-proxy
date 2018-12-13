@@ -18,7 +18,6 @@ let queue = require('./queue');
 
 // this flag indicates whether or not we'll accept messages on the POST end-point
 // when a SIGTERM is received, we set this flag to false and throw back a 503
-let isRunning = true;
 
 // bootstrap app
 let app = express();
@@ -38,16 +37,10 @@ app.get('/healthz', (req, res, next) => {
 app.post('/messages/:channel', (req, res, next) => {
   prom.receiveCount.inc();
   let end = prom.requestSummary.startTimer();
-  if (!isRunning) {
-    let error = new Error('Service Unavailable');
-    error.status = 503;
-    next(error);
-  } else {
-    let channel = req.params.channel;
-    let messages = req.body.messages || [];
-    queue.push(publishJob(channel, messages, end));
-    res.json({success: true});
-  }
+  let channel = req.params.channel;
+  let messages = req.body.messages || [];
+  queue.push(publishJob(channel, messages, end));
+  res.json({success: true});
 });
 
 
@@ -57,16 +50,20 @@ app.post('/messages/:channel', (req, res, next) => {
    * @param {String} channel
    * @param {[Object]} messages
    * @param {Function} end
+   * @param {Integer} retries
    *
    * @return {Function}
    */
-function publishJob(channel, messages, end) {
+function publishJob(channel, messages, end, retries=0) {
   return function(cb) {
     pubsub.publish(channel, messages).then((result)=>{
       let errors = result.errors;
       if(errors.length > 0) {
         prom.publishCount.inc({state: 'failed'});
-        queue.push(publishJob(channel, errors, end));
+        if(retries > -2 /* This is infinite for now */) {
+          retries++;
+          queue.push(publishJob(channel, errors, end, retries));
+        }
       } else {
         prom.publishCount.inc({state: 'success'});
         end();
@@ -107,13 +104,17 @@ let onExitHandler = () => {
   clearInterval(queue.timer);
 
   logger.info('Processing remaining jobs on queue');
-  queue.start(() => {
-    logger.info('Closing express server socket');
-    app.server.close(() => {
-      process.exit(0);
-    });
-  });
+  logger.info('Closing express server socket');
+  app.server.close(emptyQueue);
 };
+
+function emptyQueue() {
+  if(queue.length == 0) {
+    process.exit(0);
+  } else {
+    queue.start(emptyQueue);
+  }
+}
 
 process.on('SIGTERM', () => {
   onExitHandler();

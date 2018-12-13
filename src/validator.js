@@ -6,6 +6,7 @@ let validate = () => {
 };
 //  If a schema url is supplied then validation will occur
 if(config.VALIDATION_ERROR_SCHEMA_URL) {
+  let uris = {};
   let eventPubSub = require('@superbalist/js-event-pubsub');
   let request = require('request-promise-native');
   let JSONSchemaEventValidator = eventPubSub.validators.JSONSchemaEventValidator;
@@ -13,8 +14,15 @@ if(config.VALIDATION_ERROR_SCHEMA_URL) {
   let Ajv = require('ajv');
   let ajv = new Ajv({
     extendRefs: true,
-    loadSchema: (uri) => {
-      return request({uri: uri, json: true});
+    loadSchema: async (uri) => {
+      // Use previously requested successful URIs
+      if (!uris[uri] || await uris[uri].catch(()=>{
+        return 'Failed';
+      }) == 'Failed') {
+        // In memory cache
+        uris[uri] = request({uri: uri, json: true});
+      }
+      return uris[uri];
     },
     allErrors: true,
   });
@@ -48,7 +56,7 @@ if(config.VALIDATION_ERROR_SCHEMA_URL) {
   //  Override validation with ajv validation.
   validate = (message) => {
     if(!message.schema) {
-      logger.error('No schema: ' + JSON.stringify(message));
+      logger.error('No schema: ' + JSON.stringify(message.meta));
       return Promise.reject(new ValidationError({
         event: {
           attributes: {meta: message.meta},
@@ -61,6 +69,7 @@ if(config.VALIDATION_ERROR_SCHEMA_URL) {
       if(validationResult.passes) {
         return message;
       } else {
+        // Throw an error for validation so that it can be caught higher up.
         throw new ValidationError(validationResult);
       }
     });
