@@ -99,7 +99,6 @@ let onExitHandler = () => {
   logger.info('Stopping queue timer');
   clearInterval(queue.timer);
 
-  logger.info('Processing remaining jobs on queue');
   logger.info('Closing express server socket');
   // When the HTTP server closes we want to empty the job queue.
   app.server.close(emptyQueue);
@@ -113,6 +112,7 @@ function emptyQueue() {
   if(queue.length == 0) {
     process.exit(0);
   } else {
+    logger.info('Processing remaining jobs on queue');
     queue.start(emptyQueue);
   }
 }
