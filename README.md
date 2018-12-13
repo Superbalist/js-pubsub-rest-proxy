@@ -60,6 +60,10 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | GOOGLE_CLOUD_PROJECT_ID        | null      |                                                                    |
 | GOOGLE_APPLICATION_CREDENTIALS | null      | The full path to the file containing the Google Cloud credentials  |
 | GOOGLE_CLOUD_CLIENT_IDENTIFIER | null      | The client identifier used when talking to Google Cloud            |
+| VALIDATION_ERROR_SCHEMA_URL    | false     | The url for invalid event schema below. Enables validation
+|
+| VALIDATION_ERROR_CHANNEL       | validation_error | The channel to publish validation errors to
+|
 
 ## Running
 
@@ -85,4 +89,23 @@ $ docker run \
   -e GOOGLE_CLOUD_PROJECT_ID='your-project-id-here' \
   -e GOOGLE_APPLICATION_CREDENTIALS='/etc/gcloud_credentials.json' \
   superbalist/js-pubsub-rest-proxy
+```
+
+## Validation Error Schema
+```
+"properties": {
+  "schema": {
+      "type": "string",
+      "format": "uri"
+  },
+  "meta": {
+      "type": "object"
+  },
+  "event": {
+      "type": "object"
+  },
+  "errors": {
+      "type": "array"
+  }
+}
 ```
