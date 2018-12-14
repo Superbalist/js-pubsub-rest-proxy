@@ -56,7 +56,7 @@ if(config.VALIDATION_ERROR_SCHEMA_URL) {
   //  Override validation with ajv validation.
   validate = (message) => {
     if(!message.schema) {
-      logger.error('No schema: ' + JSON.stringify(message.meta));
+      logger.error(`No schema: ${JSON.stringify(message.meta)}`);
       return Promise.reject(new ValidationError({
         event: {
           attributes: {meta: message.meta},

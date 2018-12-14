@@ -26,7 +26,7 @@ let publish = async (channel, messages) => {
       return connection.publish(channel, message);
     }).catch((error) => {
       if(error.name == 'ValidationError') {
-        logger.warn('ValidationError: '+channel+' - '+error.event.errors);
+        logger.warn(`ValidationError: ${channel} - ${error.event.errors}`);
         invalidMessages.push(error.event);
         // If it is not valid then publish the invalid event to a separate channel
         // For now we're going to dual publish the invalid messages.
