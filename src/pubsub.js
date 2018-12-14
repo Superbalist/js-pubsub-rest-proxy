@@ -29,14 +29,20 @@ let publish = async (channel, messages) => {
         logger.warn('ValidationError: '+channel+' - '+error.event.errors);
         invalidMessages.push(error.event);
         // If it is not valid then publish the invalid event to a separate channel
-        connection.publish(config.VALIDATION_ERROR_CHANNEL, error.event);
         // For now we're going to dual publish the invalid messages.
         // Wrap it in a try catch so that if it fails but publish succeeds it doesn't
         // publish the same event twice.
+        prom.messageCount.inc({state: 'invalid'});
         try{
-          prom.messageCount.inc({state: 'invalid'});
+          let failPublish = connection.publish(config.VALIDATION_ERROR_CHANNEL, error.event);
+          if(!config.PUBLISH_INVALID) {
+            return failPublish;
+          }
         } catch(error) {
-          // Do nothing
+          // Do nothing unless we're only publishing the error
+            if(!config.PUBLISH_INVALID) {
+              throw new Error(error);
+            }
         }
         return connection.publish(channel, message);
       } else {
