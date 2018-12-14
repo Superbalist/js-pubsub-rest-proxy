@@ -62,7 +62,7 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | GOOGLE_CLOUD_CLIENT_IDENTIFIER | null      | The client identifier used when talking to Google Cloud            |
 | VALIDATION_ERROR_SCHEMA_URL    | false     | The url for invalid event schema below. Enables validation         |
 | VALIDATION_ERROR_CHANNEL       | validation_error | The channel to publish validation errors to                 |
-| PUBLISH_INVALID                | true      | Publish invalid events (true, false)                      |
+| PUBLISH_INVALID                | true      | Publish invalid events (true, false)                               |
 
 ## Running
 
