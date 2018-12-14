@@ -16,9 +16,6 @@ let logger = require('./logger');
 let pubsub = require('./pubsub');
 let queue = require('./queue');
 
-// this flag indicates whether or not we'll accept messages on the POST end-point
-// when a SIGTERM is received, we set this flag to false and throw back a 503
-
 // bootstrap app
 let app = express();
 app.use(morgan('dev'));
