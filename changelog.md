@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 2018-12-13
+
+* Added schema validation checking
+
 ## 1.0.3 2018-12-06
 
 * Added more prometheus metrics

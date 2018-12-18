@@ -14,12 +14,7 @@ let prom = require('./prometheus');
 
 let logger = require('./logger');
 let pubsub = require('./pubsub');
-let connection = pubsub.connection();
 let queue = require('./queue');
-
-// this flag indicates whether or not we'll accept messages on the POST end-point
-// when a SIGTERM is received, we set this flag to false and throw back a 503
-let isRunning = true;
 
 // bootstrap app
 let app = express();
@@ -39,33 +34,40 @@ app.get('/healthz', (req, res, next) => {
 app.post('/messages/:channel', (req, res, next) => {
   prom.receiveCount.inc();
   let end = prom.requestSummary.startTimer();
-  if (!isRunning) {
-    let error = new Error('Service Unavailable');
-    error.status = 503;
-    next(error);
-  } else {
-    let channel = req.params.channel;
-    let messages = req.body.messages || [];
-    if(messages.length > 0) {
-      queue.push((cb) => {
-        connection.publishBatch(channel, messages).then(()=>{
-          prom.publishCount.inc({state: 'success'});
-          cb();
-          end();
-        }).catch((err) => {
-          prom.publishCount.inc({state: 'failed'});
-          cb(err);
-          end();
-        });
-      });
-      res.json({success: true});
-    } else {
-      prom.publishCount.inc({state: 'empty'});
-      end();
-      res.status(400).json({success: false});
-    }
-  }
+  let channel = req.params.channel;
+  let messages = req.body.messages || [];
+  queue.push(publishJob(channel, messages, end));
+  res.json({success: true});
 });
+
+
+  /**
+   * Return a job
+   *
+   * @param {String} channel
+   * @param {[Object]} messages
+   * @param {Function} end
+   * @param {Integer} retries
+   *
+   * @return {Function}
+   */
+function publishJob(channel, messages, end) {
+  return function(cb) {
+    pubsub.publish(channel, messages).then((result)=>{
+      let errors = result.errors;
+      if(errors.length > 0) {
+        prom.publishCount.inc({state: 'failed'});
+        queue.push(publishJob(channel, errors, end));
+      } else {
+        prom.publishCount.inc({state: 'success'});
+        end();
+      }
+      cb();
+    }).catch((error) => {
+      cb(error);
+    });
+  };
+}
 
 // bind middleware
 app.use((req, res, next) => {
@@ -90,19 +92,27 @@ app.use((err, req, res, next) => {
 
 let onExitHandler = () => {
   logger.info('Preparing to shutdown application');
-  isRunning = false;
 
   logger.info('Stopping queue timer');
   clearInterval(queue.timer);
 
-  logger.info('Processing remaining jobs on queue');
-  queue.start(() => {
-    logger.info('Closing express server socket');
-    app.server.close(() => {
-      process.exit(0);
-    });
-  });
+  logger.info('Closing express server socket');
+  // When the HTTP server closes we want to empty the job queue.
+  app.server.close(emptyQueue);
 };
+
+
+/**
+ * Run the queue and exit if it is empty
+ */
+function emptyQueue() {
+  if(queue.length == 0) {
+    process.exit(0);
+  } else {
+    logger.info('Processing remaining jobs on queue');
+    queue.start(emptyQueue);
+  }
+}
 
 process.on('SIGTERM', () => {
   onExitHandler();

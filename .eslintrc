@@ -4,12 +4,17 @@
     "node": true,
     "es6": true
   },
+  "parserOptions": {
+    "ecmaVersion": 2017,
+    "sourceType": "module"
+  },
   "rules": {
     "max-len": ["error", {
       "ignoreComments": true,
       "ignoreUrls": true,
       "ignoreStrings": true,
-      "ignoreRegExpLiterals": true
+      "ignoreRegExpLiterals": true,
+      "code": 120
     }]
   }
 }

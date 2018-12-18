@@ -3,9 +3,65 @@
 let pubSubManager = require('@superbalist/js-pubsub-manager');
 let PubSubManager = pubSubManager.PubSubManager;
 let ConnectionFactory = pubSubManager.PubSubConnectionFactory;
-
+let prom = require('./prometheus');
 // create pubsub manager
 let connectionFactory = new ConnectionFactory();
 let manager = new PubSubManager(connectionFactory, pubSubManager.config);
+let connection = manager.connection();
+let config = require('./config');
+let validator = require('./validator');
 
-module.exports = manager;
+let logger = require('./logger');
+
+let publish = async (channel, messages) => {
+  let errors = [];
+  let validMessages = [];
+  let invalidMessages = [];
+  // Map all messages to validate and publish each individually.
+  await Promise.all(messages.map((message)=>{
+    return validator.validate(message).then(()=>{
+      validMessages.push(message);
+      // If a message is valid then publish it.
+      prom.messageCount.inc({state: 'valid'})
+      return connection.publish(channel, message);
+    }).catch((error) => {
+      if(error.name == 'ValidationError') {
+        logger.warn(`ValidationError: ${channel} - ${error.event.errors}`);
+        invalidMessages.push(error.event);
+        // If it is not valid then publish the invalid event to a separate channel
+        // For now we're going to dual publish the invalid messages.
+        // Wrap it in a try catch so that if it fails but publish succeeds it doesn't
+        // publish the same event twice.
+        prom.messageCount.inc({state: 'invalid'});
+        try{
+          let failPublish = connection.publish(config.VALIDATION_ERROR_CHANNEL, error.event);
+          if(!config.PUBLISH_INVALID) {
+            return failPublish;
+          }
+        } catch(error) {
+          // Do nothing unless we're only publishing the error
+            if(!config.PUBLISH_INVALID) {
+              throw new Error(error);
+            }
+        }
+        return connection.publish(channel, message);
+      } else {
+        // Throw an exception if it cannot publish or run validation.
+        throw new Error(error);
+      }
+    }).catch((error) => {
+      // This could be errors in validation or publishing
+      // Add messages with errors to the errors array.
+      errors.push(message);
+      logger.error(error);
+      return error;
+    });
+  }));
+  // Return an object with all messages. errors may contain valid and invalid
+  // messages that were unable to be published.
+  return {validMessages, invalidMessages, errors};
+};
+
+module.exports = {
+  publish,
+};

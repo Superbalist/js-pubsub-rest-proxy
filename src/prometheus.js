@@ -1,11 +1,11 @@
 'use strict';
 let express = require('express');
 let client = require('prom-client');
-let config = require('./config')
+let config = require('./config');
 client.collectDefaultMetrics({timeout: 30000});
 
 const receiveCount = new client.Counter({
-  name: 'pubsub_rest_proxy_message_total',
+  name: 'pubsub_rest_proxy_receive_total',
   help: 'Count of all messages recieved by pubsub-rest-proxy',
 });
 
@@ -22,6 +22,12 @@ const requestSummary = new client.Summary({
   ageBuckets: 5,
 });
 
+const messageCount = new client.Counter({
+  name: 'pubsub_rest_proxy_message_total',
+  help: 'Count of all individual messages published by pubsub-rest-proxy',
+  labelNames: ['state'],
+});
+
 let app = express();
 
 app.get('/metrics', (req, res) => {
@@ -34,7 +40,8 @@ if( config.PROMETHEUS_EXPORTER ) {
 }
 
 module.exports = {
-  receiveCount,
+  messageCount,
   publishCount,
+  receiveCount,
   requestSummary,
 };
