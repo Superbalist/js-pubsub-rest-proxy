@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 2018-12-19
+
+* Make prom stats show per channel
+
 ## 1.1.0 2018-12-13
 
 * Added schema validation checking

@@ -32,9 +32,9 @@ app.get('/healthz', (req, res, next) => {
 });
 
 app.post('/messages/:channel', (req, res, next) => {
-  prom.receiveCount.inc();
   let end = prom.requestSummary.startTimer();
   let channel = req.params.channel;
+  prom.receiveCount.inc({channel});
   let messages = req.body.messages || [];
   queue.push(publishJob(channel, messages, end));
   res.json({success: true});
@@ -56,10 +56,10 @@ function publishJob(channel, messages, end) {
     pubsub.publish(channel, messages).then((result)=>{
       let errors = result.errors;
       if(errors.length > 0) {
-        prom.publishCount.inc({state: 'failed'});
+        prom.publishCount.inc({state: 'failed', channel});
         queue.push(publishJob(channel, errors, end));
       } else {
-        prom.publishCount.inc({state: 'success'});
+        prom.publishCount.inc({state: 'success', channel});
         end();
       }
       cb();

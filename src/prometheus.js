@@ -7,12 +7,13 @@ client.collectDefaultMetrics({timeout: 30000});
 const receiveCount = new client.Counter({
   name: 'pubsub_rest_proxy_receive_total',
   help: 'Count of all messages recieved by pubsub-rest-proxy',
+  labelNames: ['channel'],
 });
 
 const publishCount = new client.Counter({
   name: 'pubsub_rest_proxy_publish_total',
   help: 'Count of all messages published by pubsub-rest-proxy',
-  labelNames: ['state'],
+  labelNames: ['state', 'channel'],
 });
 
 const requestSummary = new client.Summary({
