@@ -62,11 +62,11 @@ function publishJob(channel, messages, end, retries=0) {
       let errors = result.errors;
       if(errors.length > 0) {
         prom.publishCount.inc({state: 'failed', channel});
-        retries++;
         if(config.FALLBACK && retries >= 2) {
           end();
           return rabbit.publish(channel, errors);
         }
+        retries++;
         queue.push(publishJob(channel, errors.map((error) => error.message), end, retries));
       } else {
         prom.publishCount.inc({state: 'success', channel});
