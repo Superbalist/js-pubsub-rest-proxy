@@ -52,7 +52,7 @@ let publish = async (channel, messages) => {
     }).catch((error) => {
       // This could be errors in validation or publishing
       // Add messages with errors to the errors array.
-      errors.push(message);
+      errors.push({error: error.message, message});
       logger.error(error);
       return error;
     });

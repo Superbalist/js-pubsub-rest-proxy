@@ -1,35 +1,44 @@
 #!/usr/bin/env node
-
 let amqp = require('amqplib');
+let config = require('./config');
 
 let connection = amqp.connect({
-  username: 'pubsub',
-  password: 'JX2a9fyBo8wytYnn',
-  hostname: 'pubsub-rest-proxy-rabbitmq',
-}).then(async (conn)=>{
-  let channel = await conn.createChannel();
-  let deal = (message) => {
-    console.log(JSON.parse(message.content));
-    channel.ack(message);
-  };
-  channel.consume('hello', deal);
-  return conn;
+  username: config.RABBIT.USER,
+  password: Buffer.from(config.RABBIT.PASSWORD, 'base64').toString(),
+  hostname: config.RABBIT.HOST,
 }).catch((err)=>{
   console.log(err);
-  process.exit(1);
 });
 
-let publish = (err, message) => {
+let publish = (channel, errors) => {
   return connection.then(async (conn)=>{
-    let channel = await conn.createChannel();
-    channel.assertQueue('hello', {durable: false});
-    return channel.sendToQueue('hello', Buffer.from(JSON.stringify({err, message})));
+    let amqpchannel = await conn.createChannel();
+    return amqpchannel.sendToQueue(
+      'failed_pubsub_publish',
+      Buffer.from(JSON.stringify({channel, errors}))
+    );
   });
 };
+
+process.on('SIGTERM', () => {
+  setTimeout(()=>{
+    connection.then((conn)=>{
+      conn.close();
+    });
+  }, 5000);
+});
+
+process.on('SIGINT', () => {
+  setTimeout(()=>{
+    connection.then((conn)=>{
+      conn.close();
+    });
+  }, 5000);
+});
+
 
 module.exports = {
   publish,
 };
 
-publish('hello', 'hello');
-publish('really', 'is it me');
+

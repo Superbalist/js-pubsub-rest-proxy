@@ -10,6 +10,11 @@ if (config.SENTRY_DSN) {
     .install();
 }
 
+if (config.FALLBACK) {
+  // Use var intentionally so that rabbit doesn't need to be defined
+  var rabbit = require('./rabbit'); // eslint-disable-line no-var
+}
+
 let prom = require('./prometheus');
 
 let logger = require('./logger');
@@ -51,13 +56,18 @@ app.post('/messages/:channel', (req, res, next) => {
    *
    * @return {Function}
    */
-function publishJob(channel, messages, end) {
+function publishJob(channel, messages, end, retries=0) {
   return function(cb) {
     pubsub.publish(channel, messages).then((result)=>{
       let errors = result.errors;
       if(errors.length > 0) {
         prom.publishCount.inc({state: 'failed', channel});
-        queue.push(publishJob(channel, errors, end));
+        retries++;
+        if(config.FALLBACK && retries >= 2) {
+          end();
+          return rabbit.publish(channel, errors);
+        }
+        queue.push(publishJob(channel, errors.map((error) => error.message), end, retries));
       } else {
         prom.publishCount.inc({state: 'success', channel});
         end();
@@ -106,9 +116,7 @@ let onExitHandler = () => {
  * Run the queue and exit if it is empty
  */
 function emptyQueue() {
-  if(queue.length == 0) {
-    process.exit(0);
-  } else {
+  if(queue.length > 0) {
     logger.info('Processing remaining jobs on queue');
     queue.start(emptyQueue);
   }
