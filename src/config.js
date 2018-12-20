@@ -14,7 +14,7 @@ const config = {
     USER: process.env.RABBITMQ_USER || 'guest',
     PASSWORD: process.env.RABBITMQ_PASSWORD || 'Z3Vlc3Q=',
   },
-  FALLBACK: true,
+  FALLBACK: process.env.RABBITMQ_FALLBACK || false,
 };
 
 module.exports = config;
