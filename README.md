@@ -63,6 +63,10 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | VALIDATION_ERROR_SCHEMA_URL    | false     | The url for invalid event schema below. Enables validation         |
 | VALIDATION_ERROR_CHANNEL       | validation_error | The channel to publish validation errors to                 |
 | PUBLISH_INVALID                | true      | Publish invalid events (true, false)                               |
+| RABBITMQ_FALLBACK              | false     | Whether the fallback should be used or now (true, false)           |
+| RABBITMQ_URL                   | pubsub-rest-proxy-rabbitmq| Url with rabbitmq fallback                         |
+| RABBITMQ_USER                  | guest     | Rabbitmq user                                                      |
+| RABBITMQ_PASSWORD              | guest     | Should be a base64 encoded string (guest == Z3Vlc3Q=)                                 |
 
 ## Running
 
