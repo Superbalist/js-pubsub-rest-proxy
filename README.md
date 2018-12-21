@@ -66,7 +66,7 @@ When you start the `js-pubsub-rest-proxy` image, you can adjust the configuratio
 | RABBITMQ_FALLBACK              | false     | Whether the fallback should be used or now (true, false)           |
 | RABBITMQ_URL                   | pubsub-rest-proxy-rabbitmq| Url with rabbitmq fallback                         |
 | RABBITMQ_USER                  | guest     | Rabbitmq user                                                      |
-| RABBITMQ_PASSWORD              | guest     | Should be a base64 encoded string (guest == Z3Vlc3Q=)                                 |
+| RABBITMQ_PASSWORD              | guest     | Should be a base64 encoded string (guest == Z3Vlc3Q=)              |
 
 ## Running
 
