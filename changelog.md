@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 2018-12-21
+
+* Fallback to rabbitmq if messages fail 3 times. 
+
 ## 1.1.1 2018-12-19
 
 * Make prom stats show per channel

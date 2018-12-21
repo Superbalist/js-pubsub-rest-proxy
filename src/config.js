@@ -9,6 +9,12 @@ const config = {
   VALIDATION_ERROR_CHANNEL: process.env.VALIDATION_ERROR_CHANNEL || 'validation_error',
   VALIDATION_ERROR_SCHEMA_URL: process.env.VALIDATION_ERROR_SCHEMA_URL || false,
   PUBLISH_INVALID: !(process.env.PUBLISH_INVALID == 'false'),
+  RABBIT: {
+    HOST: process.env.RABBITMQ_URL || 'pubsub-rest-proxy-rabbitmq',
+    USER: process.env.RABBITMQ_USER || 'guest',
+    PASSWORD: process.env.RABBITMQ_PASSWORD || 'Z3Vlc3Q=',
+  },
+  FALLBACK: process.env.RABBITMQ_FALLBACK || false,
 };
 
 module.exports = config;
