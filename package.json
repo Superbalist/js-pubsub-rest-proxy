@@ -25,6 +25,7 @@
     "@superbalist/js-event-pubsub": "^3.0.2",
     "@superbalist/js-pubsub-manager": "^3.0.1",
     "ajv": "^5.0.1",
+    "amqplib": "^0.5.3",
     "body-parser": "^1.17.2",
     "debug": "~2.6.3",
     "express": "^4.15.3",
