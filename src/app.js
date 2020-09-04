@@ -10,10 +10,7 @@ if (config.SENTRY_DSN) {
     .install();
 }
 
-if (config.FALLBACK) {
-  // Use var intentionally so that rabbit doesn't need to be defined
-  var rabbit = require('./rabbit'); // eslint-disable-line no-var
-}
+let rabbit=config.FALLBACK ? require('./rabbit') : undefined
 
 let prom = require('./prometheus');
 
