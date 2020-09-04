@@ -1,4 +1,4 @@
-FROM node:7.9.0
+FROM node:12.18.3-alpine
 MAINTAINER Superbalist <tech+docker@superbalist.com>
 
 RUN mkdir -p /usr/src/app
