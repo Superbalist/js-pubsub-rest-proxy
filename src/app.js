@@ -37,8 +37,7 @@ app.post('/messages/:channel', (req, res, next) => {
   let end = prom.requestSummary.startTimer();
   let channel = req.params.channel;
   prom.receiveCount.inc({channel});
-  let messages = req.body.messages || [];
-  queue.push(publishJob(channel, messages, end));
+  let messages = Array.isArray(req.body.messages) ? req.body.messages : [];
   res.json({success: true});
 });
 
