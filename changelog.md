@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 2020-09-15
+* Badly formed channel messages result in `400` error
+* When this service is shutting down, it won't be receiving any more messages
+* When a message fails with `503`, the caller should retry
+
 ## 1.2.0 2018-12-21
 
 * Fallback to rabbitmq if messages fail 3 times. 
