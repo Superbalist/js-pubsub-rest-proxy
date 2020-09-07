@@ -5,6 +5,7 @@ let express = require('express');
 let morgan = require('morgan');
 let bodyParser = require('body-parser');
 let Raven = require('raven');
+
 if (config.SENTRY_DSN) {
   Raven.config(config.SENTRY_DSN)
     .install();
@@ -13,10 +14,11 @@ if (config.SENTRY_DSN) {
 let rabbit=config.FALLBACK ? require('./rabbit') : undefined
 
 let prom = require('./prometheus');
-
 let logger = require('./logger');
 let pubsub = require('./pubsub');
 let queue = require('./queue');
+let ServiceError=require('./lib/ServiceError')
+let canAcceptMessages=true
 
 // bootstrap app
 let app = express();
@@ -30,14 +32,29 @@ app.get('/', (req, res, next) => {
 });
 
 app.get('/healthz', (req, res, next) => {
-  res.json({ping: 'pong'});
+  if(canAcceptMessages){
+    res.json({ping: 'pong'});
+  }else{
+    next(new ServiceError('This service is shutting down', 503))
+  }
 });
 
 app.post('/messages/:channel', (req, res, next) => {
   let end = prom.requestSummary.startTimer();
   let channel = req.params.channel;
+  let messages = req.body.messages;
+
+  // Early exit if the format is wrong
+  if(!Array.isArray(messages)) throw new ServiceError('`messages` property is expected to be an array',400)
+
+  // Count this channel add
   prom.receiveCount.inc({channel});
-  let messages = Array.isArray(req.body.messages) ? req.body.messages : [];
+
+  if(canAcceptMessages){
+    queue.push(publishJob(channel, messages, end));
+  }else{
+    next(new ServiceError('This service is shutting down', 503))
+  }
   res.json({success: true});
 });
 
@@ -97,6 +114,7 @@ app.use((err, req, res, next) => {
 });
 
 let onExitHandler = () => {
+  canAcceptMessages=false
   logger.info('Preparing to shutdown application');
 
   logger.info('Stopping queue timer');
