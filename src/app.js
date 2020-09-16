@@ -16,27 +16,22 @@ let rabbit=config.FALLBACK ? require('./rabbit') : undefined
 let prom = require('./prometheus');
 let logger = require('./logger');
 let pubsub = require('./pubsub');
-let queue = require('./queue');
-let ServiceError=require('./lib/ServiceError')
-let canAcceptMessages=true
+let queue = require('./lib/queue');
+let ServiceError = require('./lib/ServiceError')
 
 // bootstrap app
 let app = express();
 app.use(morgan('dev'));
 app.use(bodyParser.json({ limit: config.MAX_POST_SIZE }));
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // register routes
 app.get('/', (req, res, next) => {
-  res.json({ping: 'pong'});
+  res.json({ ping: 'pong' });
 });
 
 app.get('/healthz', (req, res, next) => {
-  if(canAcceptMessages){
-    res.json({ping: 'pong'});
-  }else{
-    next(new ServiceError('This service is shutting down', 503))
-  }
+  res.json({ ping: 'pong' });
 });
 
 app.post('/messages/:channel', (req, res, next) => {
@@ -45,17 +40,13 @@ app.post('/messages/:channel', (req, res, next) => {
   let messages = req.body.messages;
 
   // Early exit if the format is wrong
-  if(!Array.isArray(messages)) throw new ServiceError('`messages` property is expected to be an array',400)
+  if (!Array.isArray(messages)) throw new ServiceError('`messages` property is expected to be an array', 400)
 
   // Count this channel add
-  prom.receiveCount.inc({channel});
+  prom.receiveCount.inc({ channel });
 
-  if(canAcceptMessages){
-    queue.push(publishJob(channel, messages, end));
-  }else{
-    next(new ServiceError('This service is shutting down', 503))
-  }
-  res.json({success: true});
+  queue.push(publishJob(channel, messages, end));
+  res.json({ success: true });
 });
 
 
@@ -129,8 +120,8 @@ let onExitHandler = () => {
 /**
  * Run the queue and exit if it is empty
  */
-function emptyQueue() {
-  if(queue.length > 0) {
+function emptyQueue () {
+  if (queue.length > 0) {
     logger.info('Processing remaining jobs on queue');
     queue.start(emptyQueue);
   }
