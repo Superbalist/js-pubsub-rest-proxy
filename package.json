@@ -31,7 +31,7 @@
     "express": "^4.15.3",
     "morgan": "^1.8.1",
     "prom-client": "^10.2.2",
-    "queue": "^4.2.1",
+    "queue": "6.0.1",
     "raven": "^2.0.1",
     "winston": "^2.3.1"
   },
