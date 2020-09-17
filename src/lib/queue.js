@@ -1,23 +1,73 @@
-let queueFactory = require('queue');
-let logger = require('../logger');
-let {
-  QUEUE_CONCURRENCY,
-  QUEUE_RE_ADD_JOB_TIMEOUT,
-  QUEUE_RESTART_TIME
+const queueFactory = require('queue')
+const logger = require('./logger')
+const pubsub = require('./pubsub')
+const prom = require('./prometheus')
+const getRabbit = require('./rabbit')
+const {
+    FALLBACK,
+    QUEUE_CONCURRENCY,
+    QUEUE_RE_ADD_JOB_TIMEOUT,
+    QUEUE_RESTART_TIME
 } = require('../config')
 
-// Configure a new queue
-let queue = queueFactory({ concurrency: QUEUE_CONCURRENCY })
+const rabbit = FALLBACK ? getRabbit() : undefined
 
-//TODO: This has moved - now using promises in queues, so re-adding is in a catch
-// // On Error, re-add job to the queue
-// // TODO: this seems indiscriminate and we should probably be more careful about which jobs should be requeued
-// queue.on('error', function(err, job) {
-//   logger.error(err);
-//   setTimeout(() => queue.push(job), QUEUE_RE_ADD_JOB_TIMEOUT);
-// })
+
+// Configure a new queue
+const q = queueFactory({ concurrency: QUEUE_CONCURRENCY })
 
 // This queue may run dry and stop running
-queue.timer = setInterval(() => queue.running || queue.start(), QUEUE_RESTART_TIME);
+// queue.timer = setInterval(() => queue.running || queue.start(), )
 
-module.exports = queue;
+
+const createPublishJob = (channel, messages, end, retries = 0) => (() => pubsub.publish(channel, messages)
+    .then((result) => {
+        let errors = result.errors
+        if (errors.length > 0) {
+            prom.publishCount.inc({ state: 'failed', channel })
+            if (FALLBACK && retries >= 2) {
+                end()
+                return rabbit.publish(channel, errors)
+            }
+            q.push(createPublishJob(channel, errors.map((error) => error.message), end, retries++))
+        } else {
+            prom.publishCount.inc({ state: 'success', channel })
+            end()
+        }
+    })
+    .catch((error) => {
+    //This means the call failed alltogether, automatically goes back on queue
+        logger.error(error)
+        setTimeout(() => q.push(createPublishJob(channel, messages, end)), QUEUE_RE_ADD_JOB_TIMEOUT)
+    })
+)
+
+
+const queue = {
+    addPublishJob(channel, messages, end, retries = 0) {
+        q.push(createPublishJob(channel, messages, end, retries))
+    },
+    autoRestart(interval) {
+        q._restart_timer = setInterval(() => q.running || q.start(), interval)
+    },
+    end() {
+        return new Promise((resolve)=>{
+            q.on('success', ()=>{
+                logger.info(`${q.length} jobs remaining on the queue.`)
+            })
+
+            // when the queue is cleared, delete restart_timer and resolve a promise
+            q.on('end', ()=>{
+                logger.info(`Queue empty.`)
+                q._restart_timer && clearInterval(q._restart_timer)
+                logger.info(`Queue restart timer stopped.`)
+                resolve()
+            })
+        })
+    }
+}
+
+queue.autoRestart(QUEUE_RESTART_TIME)
+
+
+module.exports = queue

@@ -1,138 +1,92 @@
-'use strict';
+'use strict'
 
-let config = require('./config');
-let express = require('express');
-let morgan = require('morgan');
-let bodyParser = require('body-parser');
-let Raven = require('raven');
+// get configuration
+const {
+    SENTRY_DSN,
+    MAX_POST_SIZE
+} = require('./config')
 
-if (config.SENTRY_DSN) {
-  Raven.config(config.SENTRY_DSN)
-    .install();
+const express = require('express')
+const morgan = require('morgan')
+const bodyParser = require('body-parser')
+const Raven = require('raven')
+
+//TODO Upgrade to sentry pls -- this is deprecated
+if (SENTRY_DSN) {
+    Raven.config(SENTRY_DSN)
+        .install()
 }
 
-let rabbit=config.FALLBACK ? require('./rabbit') : undefined
+const prom = require('./lib/prometheus')
+const logger = require('./lib/logger')
+const queue = require('./lib/queue')
+const ServiceError = require('./lib/ServiceError')
 
-let prom = require('./prometheus');
-let logger = require('./logger');
-let pubsub = require('./pubsub');
-let queue = require('./lib/queue');
-let ServiceError = require('./lib/ServiceError')
+const app = express()
 
-// bootstrap app
-let app = express();
-app.use(morgan('dev'));
-app.use(bodyParser.json({ limit: config.MAX_POST_SIZE }));
-app.use(bodyParser.urlencoded({ extended: false }));
+// app.use(morgan('dev'))
+app.use(bodyParser.json({ limit: MAX_POST_SIZE }))
+app.use(bodyParser.urlencoded({ extended: false }))
 
-// register routes
-app.get('/', (req, res, next) => {
-  res.json({ ping: 'pong' });
-});
+// why is this here? :shrug:
+app.get('/', (req, res) => {
+    // logger.info('ping')
+    res.json({ ping: 'pong' })
+})
 
-app.get('/healthz', (req, res, next) => {
-  res.json({ ping: 'pong' });
-});
+// k8s health check endpoint
+app.get('/healthz', (req, res) => res.json({ ping: 'pong' }) )
 
-app.post('/messages/:channel', (req, res, next) => {
-  let end = prom.requestSummary.startTimer();
-  let channel = req.params.channel;
-  let messages = req.body.messages;
+// handle incoming message post requests
+app.post('/messages/:channel', (req, res) => {
+    const end = prom.requestSummary.startTimer()
+    const channel = req.params.channel
+    const messages = req.body.messages
 
-  // Early exit if the format is wrong
-  if (!Array.isArray(messages)) throw new ServiceError('`messages` property is expected to be an array', 400)
+    // Early exit if the format is wrong
+    if (!Array.isArray(messages)) throw new ServiceError('`messages` property is expected to be an array', 400)
 
-  // Count this channel add
-  prom.receiveCount.inc({ channel });
-
-  queue.push(publishJob(channel, messages, end));
-  res.json({ success: true });
-});
+    // Count this channel add
+    prom.receiveCount.inc({ channel })
+    queue.addPublishJob(channel, messages, end)
+    res.json({ success: true })
+})
 
 
-  /**
-   * Return a job
-   *
-   * @param {String} channel
-   * @param {[Object]} messages
-   * @param {Function} end
-   * @param {Integer} retries
-   *
-   * @return {Function}
-   */
-function publishJob(channel, messages, end, retries=0) {
-  return function(cb) {
-    pubsub.publish(channel, messages).then((result)=>{
-      let errors = result.errors;
-      if(errors.length > 0) {
-        prom.publishCount.inc({state: 'failed', channel});
-        if(config.FALLBACK && retries >= 2) {
-          end();
-          return rabbit.publish(channel, errors);
-        }
-        retries++;
-        queue.push(publishJob(channel, errors.map((error) => error.message), end, retries));
-      } else {
-        prom.publishCount.inc({state: 'success', channel});
-        end();
-      }
-      cb();
-    }).catch((error) => {
-      cb(error);
-    });
-  };
-}
+// Anything requests that have not been dealt with by this point is 404
+app.use((req, res, next) => next(new ServiceError('Not Found', 404)))
 
-// bind middleware
-app.use((req, res, next) => {
-  let err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
-
+// Express Error Handler
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+    // set locals, only providing error in development
+    res.locals.message = err.message
+    res.locals.error = req.app.get('env') === 'development' ? err : {}
 
-  // return a json error response
-  let status = err.status || 500;
-  res.status(status);
-  res.json({
-    status: status,
-    message: err.message,
-  });
-});
+    // return a json error response
+    let status = err.status || 500
+    res.status(status)
+    res.json({
+        status,
+        message: err.message
+    })
+})
 
-let onExitHandler = () => {
-  canAcceptMessages=false
-  logger.info('Preparing to shutdown application');
+// Graceful shutdown
+let exitHandler = () => {
+    logger.info('Shutdown Initiated.')
+    app.server.close(async()=>{
+        logger.info('Express server has shut down.')
 
-  logger.info('Stopping queue timer');
-  clearInterval(queue.timer);
+        await Promise.all([queue.end()])
+        logger.info('Queue is stopped.')
 
-  logger.info('Closing express server socket');
-  // When the HTTP server closes we want to empty the job queue.
-  app.server.close(emptyQueue);
-};
-
-
-/**
- * Run the queue and exit if it is empty
- */
-function emptyQueue () {
-  if (queue.length > 0) {
-    logger.info('Processing remaining jobs on queue');
-    queue.start(emptyQueue);
-  }
+        return Promise.resolve()
+    })
 }
 
-process.on('SIGTERM', () => {
-  onExitHandler();
-});
+// Make sure we exit cleanly
+process.on('SIGTERM', exitHandler)
+process.on('SIGINT', exitHandler)
 
-process.on('SIGINT', () => {
-  onExitHandler();
-});
-
-module.exports = app;
+module.exports = app
