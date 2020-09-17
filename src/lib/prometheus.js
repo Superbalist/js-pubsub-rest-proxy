@@ -1,7 +1,7 @@
 'use strict';
 let express = require('express');
 let client = require('prom-client');
-let config = require('./config');
+let config = require('../config');
 client.collectDefaultMetrics({timeout: 30000});
 
 const receiveCount = new client.Counter({
