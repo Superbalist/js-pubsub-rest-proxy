@@ -2,7 +2,7 @@ const queueFactory = require('queue')
 const logger = require('./logger')
 const pubsub = require('./pubsub')
 const prom = require('./prometheus')
-const getRabbit = require('./rabbit')
+const rabbitController = require('./rabbit')
 const {
     FALLBACK,
     QUEUE_CONCURRENCY,
@@ -10,7 +10,6 @@ const {
     QUEUE_RESTART_TIME
 } = require('../config')
 
-const rabbit = FALLBACK ? getRabbit() : undefined
 
 
 // Configure a new queue
@@ -27,7 +26,7 @@ const createPublishJob = (channel, messages, end, retries = 0) => (() => pubsub.
             prom.publishCount.inc({ state: 'failed', channel })
             if (FALLBACK && retries >= 2) {
                 end()
-                return rabbit.publish(channel, errors)
+                return rabbitController.publish(channel, errors)
             }
             q.push(createPublishJob(channel, errors.map((error) => error.message), end, retries++))
         } else {
@@ -60,7 +59,7 @@ const queue = {
             q.on('end', ()=>{
                 logger.info(`Queue empty.`)
                 q._restart_timer && clearInterval(q._restart_timer)
-                logger.info(`Queue restart timer stopped.`)
+                logger.info(`Queue restart timer stopped. Queue is stopped.`)
                 resolve()
             })
         })

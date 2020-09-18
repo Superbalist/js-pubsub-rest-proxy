@@ -3,11 +3,13 @@
 // get configuration
 const {
     SENTRY_DSN,
-    MAX_POST_SIZE
+    MAX_POST_SIZE,
+    FALLBACK,
+    RABBIT
 } = require('./config')
 
 const express = require('express')
-const morgan = require('morgan')
+// const morgan = require('morgan')
 const bodyParser = require('body-parser')
 const Raven = require('raven')
 
@@ -21,6 +23,9 @@ const prom = require('./lib/prometheus')
 const logger = require('./lib/logger')
 const queue = require('./lib/queue')
 const ServiceError = require('./lib/ServiceError')
+const rabbitController = require('./lib/rabbit')
+
+if (FALLBACK) rabbitController.start()
 
 const app = express()
 
@@ -29,16 +34,16 @@ app.use(bodyParser.json({ limit: MAX_POST_SIZE }))
 app.use(bodyParser.urlencoded({ extended: false }))
 
 // why is this here? :shrug:
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
     // logger.info('ping')
-    res.json({ ping: 'pong' })
+    res.json({ ping: 'pong' }).end()
 })
 
 // k8s health check endpoint
 app.get('/healthz', (req, res) => res.json({ ping: 'pong' }) )
 
 // handle incoming message post requests
-app.post('/messages/:channel', (req, res) => {
+app.post('/messages/:channel', async (req, res) => {
     const end = prom.requestSummary.startTimer()
     const channel = req.params.channel
     const messages = req.body.messages
@@ -49,7 +54,7 @@ app.post('/messages/:channel', (req, res) => {
     // Count this channel add
     prom.receiveCount.inc({ channel })
     queue.addPublishJob(channel, messages, end)
-    res.json({ success: true })
+    res.json({ success: true }).end()
 })
 
 
@@ -73,20 +78,23 @@ app.use((err, req, res, next) => {
 })
 
 // Graceful shutdown
-let exitHandler = () => {
+let exitHandler = async () => {
     logger.info('Shutdown Initiated.')
-    app.server.close(async()=>{
-        logger.info('Express server has shut down.')
 
-        await Promise.all([queue.end()])
-        logger.info('Queue is stopped.')
+    logger.info('Express server has shut down.')
 
-        return Promise.resolve()
-    })
+    Promise.all([
+        queue.end(),                                    //Empty queue
+        rabbitController.stop(RABBIT.SHUTDOWN_WAIT)     //Wait for rabbit connection to close
+    ]).then(()=>{
+        logger.info('PSRP Terminating.')
+
+    }).catch(()=>{})
 }
 
 // Make sure we exit cleanly
-process.on('SIGTERM', exitHandler)
-process.on('SIGINT', exitHandler)
+process.on('SIGTERM', exitHandler) // regular termination signal
+process.on('SIGINT', exitHandler) // for ^C
+// process.on('SIGUSR2', exitHandler) // for nodemon during dev
 
 module.exports = app

@@ -18,7 +18,7 @@ if (config.VALIDATION_ERROR_SCHEMA_URL) {
             // Use previously requested successful URIs
             if (!uris[uri] || await uris[uri].catch(()=>{
                 return 'Failed'
-            }) == 'Failed') {
+            }) === 'Failed') {
                 // In memory cache
                 uris[uri] = request({uri: uri, json: true})
             }
@@ -70,6 +70,7 @@ if (config.VALIDATION_ERROR_SCHEMA_URL) {
                     return message
                 } else {
                     // Throw an error for validation so that it can be caught higher up.
+                    logger.error(validationResult)
                     throw new ValidationError(validationResult)
                 }
             })
