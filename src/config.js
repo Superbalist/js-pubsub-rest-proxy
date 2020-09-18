@@ -12,9 +12,10 @@ const config = {
     RABBIT: {
         HOST: process.env.RABBITMQ_URL || 'pubsub-rest-proxy-rabbitmq',
         USER: process.env.RABBITMQ_USER || 'guest',
-        PASSWORD: process.env.RABBITMQ_PASSWORD || 'Z3Vlc3Q='
+        PASSWORD: process.env.RABBITMQ_PASSWORD || 'Z3Vlc3Q=',
+        SHUTDOWN_WAIT: 100 // milliseconds to wait before shutting down rabbit. Just a little space to ensure rabbit exits cleanly
     },
-    FALLBACK: process.env.RABBITMQ_FALLBACK || false,
+    FALLBACK: process.env.RABBITMQ_FALLBACK === 'false' ? false : true,
     QUEUE_CONCURRENCY: 3,
     QUEUE_RE_ADD_JOB_TIMEOUT: 2000, // how long to wait before re-adding an errored job
     QUEUE_RESTART_TIME: 100 // once a queue is done, it won't react to new jobs. This is how frequently it is checked and restarted
