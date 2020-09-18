@@ -1,7 +1,7 @@
-const queueFactory = require('queue')
 const logger = require('./logger')
-const pubsub = require('./pubsub')
 const prom = require('./prometheus')
+const pubsub = require('./pubsub')
+const queueFactory = require('queue')
 const rabbitController = require('./rabbit')
 const {
     FALLBACK,
@@ -10,19 +10,14 @@ const {
     QUEUE_RESTART_TIME
 } = require('../config')
 
-
-
 // Configure a new queue
 const q = queueFactory({ concurrency: QUEUE_CONCURRENCY })
-
-// This queue may run dry and stop running
-// queue.timer = setInterval(() => queue.running || queue.start(), )
-
 
 const createPublishJob = (channel, messages, end, retries = 0) => (() => pubsub.publish(channel, messages)
     .then((result) => {
         let errors = result.errors
         if (errors.length > 0) {
+            logger.error(errors)
             prom.publishCount.inc({ state: 'failed', channel })
             if (FALLBACK && retries >= 2) {
                 end()
@@ -35,8 +30,8 @@ const createPublishJob = (channel, messages, end, retries = 0) => (() => pubsub.
         }
     })
     .catch((error) => {
-    //This means the call failed alltogether, automatically goes back on queue
-        logger.error(error)
+        //This means the call failed alltogether, automatically goes back on queue
+        logger.error(error.message)
         setTimeout(() => q.push(createPublishJob(channel, messages, end)), QUEUE_RE_ADD_JOB_TIMEOUT)
     })
 )
@@ -67,6 +62,5 @@ const queue = {
 }
 
 queue.autoRestart(QUEUE_RESTART_TIME)
-
 
 module.exports = queue
