@@ -5,10 +5,6 @@ const {RABBIT} = require('../config')
 
 let open
 
-// const getConnection = async()=>{
-//      return await open.catch(()=>{})
-// }
-
 const rabbitController = {
     /**
      * Start the rabbit connection
