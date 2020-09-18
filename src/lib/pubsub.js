@@ -13,6 +13,7 @@ let validator = require('./validator')
 
 let logger = require('./logger')
 
+
 let publish = async(channel, messages) => {
     let errors = []
     let validMessages = []
@@ -25,7 +26,7 @@ let publish = async(channel, messages) => {
             prom.messageCount.inc({state: 'valid'})
             return connection.publish(channel, message)
         }).catch((error) => {
-            if(error.name == 'ValidationError') {
+            if (error.name == 'ValidationError') {
                 logger.warn(`ValidationError: ${channel} - ${error.event.errors}`)
                 invalidMessages.push(error.event)
                 // If it is not valid then publish the invalid event to a separate channel
@@ -33,14 +34,14 @@ let publish = async(channel, messages) => {
                 // Wrap it in a try catch so that if it fails but publish succeeds it doesn't
                 // publish the same event twice.
                 prom.messageCount.inc({state: 'invalid'})
-                try{
+                try {
                     let failPublish = connection.publish(config.VALIDATION_ERROR_CHANNEL, error.event)
-                    if(!config.PUBLISH_INVALID) {
+                    if (!config.PUBLISH_INVALID) {
                         return failPublish
                     }
-                } catch(error) {
+                } catch (error) {
                     // Do nothing unless we're only publishing the error
-                    if(!config.PUBLISH_INVALID) {
+                    if (!config.PUBLISH_INVALID) {
                         throw new Error(error)
                     }
                 }
