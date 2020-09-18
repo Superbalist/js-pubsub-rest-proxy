@@ -1,13 +1,13 @@
 'use strict'
 
-let winston = require('winston')
-let config = require('../config')
+const winston = require('winston')
+const {LOG_LEVEL} = require('../config')
 
-let logger = new (winston.Logger)({
+const logger = winston.createLogger({
     transports: [
         new (winston.transports.Console)({timestamp: true})
     ]
 })
-logger.level = config.LOG_LEVEL
+logger.level = LOG_LEVEL
 
 module.exports = logger
