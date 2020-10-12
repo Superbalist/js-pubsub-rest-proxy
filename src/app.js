@@ -8,6 +8,7 @@ const {
     RABBIT
 } = require('./config')
 
+let serviceIsAvailable = false
 const express = require('express')
 const morgan = require('morgan')
 const bodyParser = require('body-parser')
@@ -40,7 +41,10 @@ app.get('/', async (req, res) => {
 })
 
 // k8s health check endpoint
-app.get('/healthz', (req, res) => res.json({ ping: 'pong' }) )
+app.get('/healthz', (req, res) => {
+    if (!serviceIsAvailable) throw new ServiceError('This service is not currently accepting requests', 400)
+    res.json({ ping: 'pong' })
+} )
 
 // handle incoming message post requests
 app.post('/messages/:channel', async (req, res) => {
@@ -79,6 +83,8 @@ app.use((err, req, res, next) => {
 
 // Graceful shutdown
 let exitHandler = async () => {
+    serviceIsAvailable = false // Health endpoint will start reporting failure
+
     logger.info('Shutdown Initiated.')
 
     logger.info('Express server has shut down.')
@@ -97,4 +103,5 @@ process.on('SIGTERM', exitHandler) // regular termination signal
 process.on('SIGINT', exitHandler) // for ^C
 // process.on('SIGUSR2', exitHandler) // for nodemon during dev
 
+serviceIsAvailable = true // Health endpoint will start reporting success
 module.exports = app
