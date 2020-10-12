@@ -9,7 +9,7 @@ const {
 } = require('./config')
 
 const express = require('express')
-// const morgan = require('morgan')
+const morgan = require('morgan')
 const bodyParser = require('body-parser')
 const Raven = require('raven')
 
@@ -29,7 +29,7 @@ if (FALLBACK) rabbitController.start()
 
 const app = express()
 
-// app.use(morgan('dev'))
+app.use(morgan('dev'))
 app.use(bodyParser.json({ limit: MAX_POST_SIZE }))
 app.use(bodyParser.urlencoded({ extended: false }))
 
